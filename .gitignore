@@ -1,0 +1,18 @@
+# --- 1. Bỏ qua các file hệ thống và cache của Python ---
+__pycache__/
+*.pyc
+.DS_Store
+.env
+
+# --- 2. Bỏ qua các thư mục dữ liệu lớn  ---
+flickr30k_images/
+flickr30k_split/
+knowledge_graph_outputs/
+Sentences/
+t5_data_split/
+
+# --- 3. Bỏ qua các file dữ liệu nằm rải rác bên ngoài ---
+*.csv
+*.json
+*.txt
+*.bak

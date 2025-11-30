@@ -1,0 +1,10 @@
+import json
+
+# Đường dẫn file
+file_path = "E:/final_project/index.json"
+
+# Đọc file
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+print(data["index"])
