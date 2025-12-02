@@ -1,0 +1,764 @@
+{
+  "name": "Caption Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "command": "=python /final_project/code_for_extract_kg/merge_graph.py {{ JSON.stringify($json.mapped_text) }}"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2176,
+        1136
+      ],
+      "id": "bb4ac064-d9b0-45f6-b62a-01666cf364c9",
+      "name": "merge KG",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "459d0e93-0617-4499-9f55-87dbde019f1e",
+              "leftValue": "={{ $json.edges.toJsonString() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -112,
+        1024
+      ],
+      "id": "9ec4eecb-dbf8-49e8-b341-309510ec822d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "content": "Nêu caption rỗng thì có nghĩa là chạy hết hoặc ngoại lệ gì đó -> in ra thông báo "
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        624
+      ],
+      "id": "8c62ae49-4bb6-4f93-9fe1-faf8d566400f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c204543b-b356-43d7-9fb6-a2b333aaa3df",
+              "leftValue": "={{Number($('Code chuẩn hóa JSON').item.json.file) }}",
+              "rightValue": 8251604257,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4208,
+        1472
+      ],
+      "id": "0df7ac59-76f4-4f19-ae48-a8fb4d9c3f6c",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "chatId": "7275329216",
+        "text": "Đã trích xuất Knowledge Graph cho toàn bộ dataset",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4544,
+        800
+      ],
+      "id": "15518075-efef-471e-9c33-cf4a0a52582a",
+      "name": "Send a text message",
+      "webhookId": "874cc22f-ba88-4cb0-965d-0803a252f79f",
+      "credentials": {
+        "telegramApi": {
+          "id": "tcz295oTZKHhHOi5",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7275329216",
+        "text": "=Lỗi gì đó ở file {{ $json.filename }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "6485edbb-3262-4576-86e8-55522b110fc1",
+      "name": "Send a text message1",
+      "webhookId": "874cc22f-ba88-4cb0-965d-0803a252f79f",
+      "credentials": {
+        "telegramApi": {
+          "id": "tcz295oTZKHhHOi5",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1536,
+        992
+      ],
+      "id": "b9623a5a-c3fa-442a-90a3-8ecb2e6fc6aa",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lấy chuỗi stdout từ node trước\nconst raw = $input.first().json.stdout;\n\n// Parse 2 lần để chuyển từ chuỗi JSON → object thật\nlet result;\ntry {\n  result = JSON.parse(raw);  // vì raw là string của JSON\n} catch (e) {\n  // Nếu vẫn lỗi, thử parse sâu hơn\n  result = JSON.parse(JSON.parse(raw));\n}\n\n// Trả ra JSON cho các node sau\nreturn [\n  {\n    json: result\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        1024
+      ],
+      "id": "9443db30-7f60-4ae7-843a-21a9622a2e80",
+      "name": "Code chuẩn hóa JSON"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Giả sử input là một mảng JSON giống bạn gửi ở trên\nconst data = $input.first().json;\n\n// Ghép các edge thành chuỗi text\nconst text = data.edges.join(\", \");\n\n// Trả lại kết quả thuần text\nreturn [{ json: { text } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        432
+      ],
+      "id": "5e6af084-140b-484d-ac85-d3bd2b730584",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "command": "=python /final_project/code_for_extract_kg/normalize_relation.py {{JSON.stringify($json.normalize_relation) }}"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        432
+      ],
+      "id": "2a50928e-d07a-4acd-ad9a-8a71546baeb2",
+      "name": "Execute Command1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lấy chuỗi stdout từ node trước\nconst raw = $input.first().json.stdout;\n\nlet result;\n\ntry {\n  // stdout là một chuỗi JSON → chỉ cần parse 1 lần\n  result = JSON.parse(raw);\n} catch (e) {\n  // Nếu trong trường hợp đặc biệt (Python in thêm dấu ngoặc kép ngoài)\n  // thì thử parse lại 1 lần nữa\n  result = JSON.parse(JSON.parse(raw));\n}\n\n// Trả ra JSON cho node sau\nreturn [\n  {\n    json: {\n      data: result\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        432
+      ],
+      "id": "491db32d-cba9-46cf-a2a7-449d0573b3dd",
+      "name": "Code chuẩn hóa JSON 2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input: JSON giống như bạn gửi\n// Dữ liệu thường nằm trong items[0].json\nconst input = $input.first().json;\n\nconst tripletTexts = input.data.flatMap(entry =>\n  (entry.triplets || []).map(t =>\n    `from: ${t.from} - relation: ${t.relation} - to: ${t.to}`\n  )\n);\n\n// Nếu bạn muốn lọc trùng (optional)\nconst uniqueTriplets = [...new Set(tripletTexts)];\n\n// Trả ra kết quả cho node sau\nconst mergedText = uniqueTriplets.join('; ');\n\n// Trả ra cho node sau\nreturn [\n  {\n    json: {\n      text: mergedText\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        432
+      ],
+      "id": "109a4c1c-d658-4581-a2b9-1892af524f63",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "correct_triplet",
+              "description": "=The content you receive is a set of knowledge graph triplets separated by semicolons (;).\nYour task is to remove triplets that are semantically incorrect, inappropriate, or should not be included in the knowledge graph.\n\nPlease keep the structure of the triplets intact: from: relation: to:\n\nStrictly do NOT perform any modification or alteration of the triplet content. Your sole task is to filter out triplets that are meaningless, wrong, or not useful for the knowledge graph."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        1744,
+        432
+      ],
+      "id": "60c8c2ca-2d9d-499e-a5e4-cfdb43d43018",
+      "name": "Information Extractor1",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "command": "=python /final_project/code_for_extract_kg/filter_relation.py {{JSON.stringify($json.output.correct_triplet) }} {{ $('If').item.json.filename }}.jpg"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2064,
+        416
+      ],
+      "id": "e451e049-d97a-4d14-b7ae-6011f36f3576",
+      "name": "Execute Command2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lấy dữ liệu đầu vào\nconst input = $input.first().json.output.normalize_relation;\n\n// Tách chuỗi thành mảng\nconst pairs = input.split(',').map(s => s.trim());\n\n// Dùng Set để loại bỏ trùng\nconst uniquePairs = [...new Set(pairs)];\n\n// Ghép lại thành chuỗi duy nhất\nconst uniqueString = uniquePairs.join(', ');\n\n// Trả về kết quả\nreturn {\n  normalize_relation: uniqueString\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        432
+      ],
+      "id": "1d2b9651-0653-4fc3-8248-93f5d13118eb",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "model": "mistral-small-2503",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [
+        512,
+        656
+      ],
+      "id": "28134a04-4780-490f-9099-c6660f19573b",
+      "name": "Mistral Cloud Chat Model",
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "cABvCOzztOymnfkI",
+          "name": "Mistral Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "mistral-small-2503",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        688
+      ],
+      "id": "066b352d-e33e-4178-b9d0-8bc88dc59f16",
+      "name": "Mistral Cloud Chat Model1",
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "cABvCOzztOymnfkI",
+          "name": "Mistral Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "python /final_project/code_for_extract_kg/read_index.py "
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -1136,
+        1008
+      ],
+      "id": "f79edbc8-2c14-4e5c-9eea-5170b0c99638",
+      "name": "Execute Command3"
+    },
+    {
+      "parameters": {
+        "command": "python /final_project/code_for_extract_kg/update_index.py "
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2464,
+        1136
+      ],
+      "id": "2520675e-cba4-442a-a0fd-f40a4c9e3503",
+      "name": "Execute Command4"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "label",
+              "description": "=You are a knowledge graph labeling agent.\nFor each item in the input list, provide only one English label that represents it in the most general and common way.\n\nInstructions:\n\n1. Keep the original number at the start of each item (e.g., \"1.\", \"2.\").\n2. All labels must be in singular form only, regardless of whether the item is singular or plural.\n3. Even if an item is repeated or obvious, provide a label for each item.\n4. Do not merge, skip, or remove duplicates; the number of labels must exactly match the number of input items, in the same order.\n5. Separate the number and the label with a space, and place a comma after each item — for example: \"1. worker, 2. man, 3. apple\".\n6. You can assume that input items may contain numbers, plurals, or adjectives; always convert them to singular and ignore adjectives when labeling.\n7. If you don't know which label to label the element, label it as “Unknown”.\n8. Always generalize labels as the most common way like:\n\n  * All types of clothing (e.g., \"shirt\", \"jeans\", \"jacket\") → clothing\n  \n  * All specific jobs or professions (e.g., \"construction worker\", \"doctor\", \"chef\") → worker or person depending on context\n  \n  * All types of buildings or man-made structures (e.g., \"house\", \"booth\", \"bridge\") → structure\n  \n  * All types of tools or items (e.g., \"ladder\", \"board\", \"stair\") → object\n  \n  * A person with female gender (except specific jobs or professions) → woman\n  \n  * A person with male gender (except specific jobs or professions) → man\n  \n  * A group of multiple people → group of people\n\n  * All types of animals -> animal\n\n  * All types of fruits -> fruit\n\nExample Input:\n[\"1. two workers\", \"2. two men\", \"3. apple\", \"4. building\", \"5. unknown object\"]\n\nExpected Output:\n\n1. worker, 2. man, 3. apple, 4. building, 5. Unknown\n",
+              "required": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        432,
+        992
+      ],
+      "id": "5f0da4b5-2804-42ad-b59f-c5a22135f036",
+      "name": "Information Extractor2",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "voxtral-small-latest",
+        "options": {
+          "safeMode": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [
+        384,
+        1184
+      ],
+      "id": "ca5a5fe5-d26f-402f-bbf1-923e4f608e92",
+      "name": "Mistral Cloud Chat Model2",
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "1iprYQPT4H16ZaAa",
+          "name": "Mistral Cloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Giả sử input là một mảng JSON giống bạn gửi ở trên\nconst data = $input.first().json;\n\n// Ghép các node thành chuỗi đánh số\nconst text = data.nodes\n  .map((node, index) => `${index + 1}. ${node}`)\n  .join(\", \");\n\n// Trả lại kết quả thuần text\nreturn [{ json: { text } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        1136
+      ],
+      "id": "ecde939a-1f4f-4bd0-ba64-98f14f0b3ba6",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lấy nodes và labels\nconst nodesText = $input.first().json.data[1].text\n    .split(\",\")\n    .map(n => n.trim())\n    .map(n => n.replace(/^\\d+\\.\\s*/, \"\")); // loại bỏ số thứ tự đầu chuỗi\n\nconst labelsText = $input.first().json.data[0].output.label\n    .split(\",\")\n    .map(n => n.trim())\n    .map(n => n.replace(/^\\d+\\.\\s*/, \"\"));\n\nif(nodesText.length !== labelsText.length){\n    throw new Error(`Số lượng node (${nodesText.length}) và label (${labelsText.length}) khác nhau!`);\n}\n\n// Ghép node - label, KHÔNG đánh số\nconst outputText = nodesText.map((node, idx) => `${node} - ${labelsText[idx]}`).join(\", \");\n\nreturn [{ json: { mapped_text: outputText } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        1136
+      ],
+      "id": "624d3465-7020-4cbc-98c7-c2296d11db6a",
+      "name": "Mapping node - label"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        880,
+        1136
+      ],
+      "id": "7482e1a4-2a0d-44dd-8ccc-98433adcde8f",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        1136
+      ],
+      "id": "56dfb0af-495f-42b4-b014-aec82359a9da",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "normalize_relation",
+              "description": "For each relation in the input: \n\n1. Keep standalone prepositions (in, on, at, with, to, from, under, over, between, among).  \n2. Keep main verbs and their required prepositions or particles (phrasal verbs).  \n3. Remove auxiliary verbs (is, are, was, were, be, being, been) and conjunctions (and, or, but).  \n4. Convert all verbs to their base (infinitive) form (e.g., “standing on” → “stand on”).  \n\nEven if a relation does not change after normalization, you must still output it in the format: normalize - original word.  \n\nReturn all normalized relations in a single line, separated by commas.  \n\nExample:  \nInput: \"trying to reach, in\"  \nOutput: \"try to reach - trying to reach, in - in\"\n\nREMEMBER you must still output it in the format: normalize - original word.  ",
+              "required": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        560,
+        432
+      ],
+      "id": "5ab98aae-fdc9-4ca1-96dd-d9d4b459b354",
+      "name": "Information Extractor",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "command": "=python /final_project/code_for_extract_kg/read_caption.py {{ $json.stdout }}"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        1024
+      ],
+      "id": "b8b4a513-2d61-4371-ac5f-0a0546be781b",
+      "name": "Execute Command"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "merge KG": {
+      "main": [
+        [
+          {
+            "node": "Execute Command4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Command3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Execute Command3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code chuẩn hóa JSON": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command1": {
+      "main": [
+        [
+          {
+            "node": "Code chuẩn hóa JSON 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code chuẩn hóa JSON 2": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor1": {
+      "main": [
+        [
+          {
+            "node": "Execute Command2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command2": {
+      "main": [
+        []
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Execute Command1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral Cloud Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral Cloud Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command3": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command4": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral Cloud Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Information Extractor2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Mapping node - label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapping node - label": {
+      "main": [
+        [
+          {
+            "node": "merge KG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Code chuẩn hóa JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e2ff859e-e702-41a7-937f-1cf19a4b0ac1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cc611ab90d450bb7d71d5154c5cb4e87f56a16175b67acf082b392044b13c41c"
+  },
+  "id": "iEwtdnQKTyRTFidW",
+  "tags": []
+}
