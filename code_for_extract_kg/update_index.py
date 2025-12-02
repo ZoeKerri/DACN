@@ -1,3 +1,4 @@
+#Cập nhật index trong file index.json
 import json
 
 # Đường dẫn file

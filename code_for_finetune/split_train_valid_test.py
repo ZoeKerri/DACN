@@ -1,8 +1,8 @@
+# Code để chia tệp CSV thành train, val, test dựa trên tệp JSON cung cấp thông tin chia tệp
 import json
 import pandas as pd
 import os
 
-# --- CẤU HÌNH ---
 csv_path = 't5_finetune.csv'        
 json_path = 'dataset_flickr30k.json' 
 output_dir = 't5_data_split'        
@@ -24,7 +24,6 @@ img_to_split = {img['filename']: img['split'] for img in data['images']}
 # Gán split cho CSV
 df['split_group'] = df['image_id'].map(img_to_split)
 
-# --- PHẦN THAY ĐỔI QUAN TRỌNG ---
 # Những dòng không tìm thấy trong JSON → tự động cho vào train
 missing_mask = df['split_group'].isna()
 missing_rows = df[missing_mask]

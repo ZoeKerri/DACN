@@ -1,91 +1,157 @@
 import json
 import pandas as pd
+import spacy
+from collections import defaultdict
+import os
+import nltk
+from nltk.corpus import wordnet as wn
 
-# === CẤU HÌNH ===
-kg_file_path = 'merged_unique.json'
-blip_file_path = 'blip_captions_from_kaggle.json'
-output_csv = 't5_finetune.csv'
+tensor_file_path = 'node_relation_co_occurrence_tensor.csv'
+kg_file_path = 'knowledge_graph_enriched.json'
+results_file_path = 'flickr30k_images/results.csv'
+output_csv = 't5_finetune_final.csv'
+blip_caption_path = 'blip_captions_from_kaggle.json'
 
-def normalize_key(x):
-    if x is None:
+try:
+    nltk.data.find('corpora/wordnet.zip')
+except LookupError:
+    nltk.download('wordnet')
+    nltk.download('omw-1.4')
+
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    from spacy.cli import download
+    download("en_core_web_sm")
+    nlp = spacy.load("en_core_web_sm")
+
+#Dùng cho việc lấy hypernym từ WordNet nếu không tìm thấy trong KG lẫn tensor
+def get_wordnet_hypernym(noun):
+    try:
+        synsets = wn.synsets(noun, pos=wn.NOUN)
+        if not synsets: return None
+        hypernyms = synsets[0].hypernyms()
+        if not hypernyms: return None
+        return hypernyms[0].lemmas()[0].name().replace('_', ' ')
+    except:
         return None
-    x = str(x).strip()
-    return x.replace(".jpg", "")
 
-def format_triplets(triplets_list):
-    if not triplets_list:
-        return "empty"
-    valid = [
-        f"{t['from']} {t['relation']} {t['to']}"
-        for t in triplets_list
-        if 'from' in t and 'relation' in t and 'to' in t
-    ]
-    return ", ".join(valid) if valid else "empty"
+def load_blip_captions():
+    blip_dict = {}
+    if os.path.exists(blip_caption_path):
+        with open(blip_caption_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                blip_dict = data
+            elif isinstance(data, list):
+                for item in data:
+                    key = item.get("filename") or item.get("image_id") or item.get("id")
+                    val = item.get("caption") or item.get("text")
+                    if key and val:
+                        blip_dict[str(key).strip()] = str(val).strip()
+    return blip_dict
 
-def create_dataset_final():
+def load_data_lookup():
+    tensor_lookup = defaultdict(list)
+    kg_lookup = defaultdict(list)
 
-    print("Đang tải JSON...")
-    with open(kg_file_path, 'r', encoding='utf-8') as f:
-        kg_data = json.load(f)
-    with open(blip_file_path, 'r', encoding='utf-8') as f:
-        blip_data = json.load(f)
+    # 1. Load Tensor
+    if os.path.exists(tensor_file_path):
+        df_tensor = pd.read_csv(tensor_file_path)
+        for _, row in df_tensor.iterrows():
+            triplet = f"{row['Subject']} {row['Relation']} {row['Object']}"
+            key = str(row['Subject']).lower().strip()
+            tensor_lookup[key].append(triplet)
 
-    # === BLIP lookup chuẩn hóa key ===
-    blip_lookup = {}
-
-    if isinstance(blip_data, dict):
-        for k, v in blip_data.items():
-            blip_lookup[normalize_key(k)] = v
+    # 2. Load Knowledge Graph
+    allowed_relations = ['is a', 'is found at', 'can', 'is used for']
+    
+    if os.path.exists(kg_file_path):
+        with open(kg_file_path, 'r', encoding='utf-8') as f: 
+            kg_data = json.load(f)
+            for item in kg_data:
+                # Chỉ lấy quan hệ tăng cường
+                if item.get('relation') in allowed_relations:
+                    triplet = f"{item['from']} {item['relation']} {item['to']}"
+                    
+                    node_name = str(item['from']).lower().strip()
+                    
+                    kg_lookup[node_name].append(triplet)
     else:
-        for item in blip_data:
-            key_raw = item.get("filename") or item.get("image_id")
-            if key_raw:
-                blip_lookup[normalize_key(key_raw)] = item.get("caption")
+        print(f"Không tìm thấy file {kg_file_path}")
 
-    print("Tổng BLIP unique key:", len(blip_lookup))
+    return tensor_lookup, kg_lookup
+
+def get_nouns_from_caption(caption):
+    if not caption: return []
+    doc = nlp(str(caption).lower())
+    nouns = [token.lemma_ for token in doc if token.pos_ in ['NOUN', 'PROPN']]
+    return list(set(nouns))
+
+def create_t5_dataset():
+    blip_data_dict = load_blip_captions()
+    tensor_lookup, kg_lookup = load_data_lookup()
+
+    # Load Results
+    if not os.path.exists(results_file_path):
+        print("Lỗi: Không tìm thấy file results.csv")
+        return
+    df_results = pd.read_csv(results_file_path, delimiter='|')
+    df_results.columns = [c.strip() for c in df_results.columns]
+    
+    results_lookup = defaultdict(list)
+    for _, row in df_results.iterrows():
+        if 'image_name' in row and 'comment' in row:
+            results_lookup[str(row['image_name']).strip()].append(str(row['comment']).strip())
 
     final_rows = []
-    seen_pairs = set()
+    print(f"--- Đang xử lý {len(blip_data_dict)} ảnh từ BLIP ---")
 
-    for item in kg_data:
+    for filename, blip_caption in blip_data_dict.items():
+        filename = filename.strip()
+        nouns = get_nouns_from_caption(blip_caption)
+        
+        caption_triplets = set()
 
-        filename_raw = item.get("filename") or item.get("image_id")
-        if not filename_raw:
-            continue
+        for noun in nouns:
+            noun_specific_triplets = []
+            
+            # 1. Tìm trong Tensor
+            if noun in tensor_lookup:
+                noun_specific_triplets.extend(tensor_lookup[noun][:5]) 
+            
+            # 2. Tìm trong Knowledge Graph
+            if noun in kg_lookup:
+                noun_specific_triplets.extend(kg_lookup[noun][:5])
+            
+            # 3. FALLBACK: WordNet (nếu không tìm thấy quan hệ nào)
+            if not noun_specific_triplets:
+                hypernym = get_wordnet_hypernym(noun)
+                if hypernym:
+                    fallback_triplet = f"{noun} is a {hypernym}"
+                    noun_specific_triplets.append(fallback_triplet)
+            
+            caption_triplets.update(noun_specific_triplets)
 
-        # === Giữ filename gốc để xuất ra dataset (có .jpg) ===
-        output_filename = str(filename_raw).strip()
+        graph_str = ", ".join(caption_triplets) if caption_triplets else "empty"
+        input_text = f"refine caption: {blip_caption} <sep> graph: {graph_str}"
 
-        # === nhưng dùng key không .jpg để lookup BLIP ===
-        lookup_key = normalize_key(filename_raw)
+        target_captions = results_lookup.get(filename, [])
+        if not target_captions: continue
 
-        blip_caption = blip_lookup.get(lookup_key)
-        if not blip_caption:
-            continue
+        for target in target_captions:
+            final_rows.append({
+                "image_id": filename,
+                "input_text": input_text,
+                "target_text": target
+            })
 
-        target = item.get("caption", "")
-        triplet_str = format_triplets(item.get("triplets", []))
-
-        input_text = f"refine caption: {blip_caption} <sep> graph: {triplet_str}"
-
-        # === CHỐNG TRÙNG TUYỆT ĐỐI ===
-        pair_key = (output_filename, blip_caption, target)
-        if pair_key in seen_pairs:
-            continue
-        seen_pairs.add(pair_key)
-
-        final_rows.append({
-            "image_id": output_filename,    
-            "input_text": input_text,
-            "target_text": target
-        })
-
-    df = pd.DataFrame(final_rows)
-
-    print("Tổng dòng:", len(df))
-    df.to_csv(output_csv, index=False)
-    print(f"Đã lưu dataset sạch: {output_csv}")
-
+    if final_rows:
+        df_final = pd.DataFrame(final_rows)
+        df_final.to_csv(output_csv, index=False)
+        print(f"--- Hoàn tất! File đã lưu tại: {output_csv} ---")
+    else:
+        print("Không tạo được dữ liệu.")
 
 if __name__ == "__main__":
-    create_dataset_final()
+    create_t5_dataset()

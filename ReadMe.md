@@ -30,7 +30,6 @@ Dự án này phát triển hệ thống sinh chú thích ảnh (Image Captionin
 
 * **Xây dựng Knowledge Graph & PMI:**
     * `create_co_occurrence_matrix.py`: Tạo ma trận đồng xuất hiện (Co-occurrence Matrix) từ file JSON tổng, tính tần suất xuất hiện cùng nhau của các cặp node.
-    * `merge_all.py`: (Phiên bản Finetune) Quét toàn bộ thư mục output, gộp data và tính toán sơ bộ ma trận đồng xuất hiện để xuất ra CSV (`kg_co_occurrence_matrix.csv`).
     * `cal_PMI.py`: Tính điểm **PMI (Pointwise Mutual Information)** từ ma trận đồng xuất hiện. Kết quả lưu ra `kg_pmi_ranked.csv`, dùng để xếp hạng và truy xuất triplet quan trọng nhất khi test thực tế.
 
 * **Làm sạch & Gán nhãn (Labeling):**

@@ -1,3 +1,4 @@
+#Code cho việc chia file ảnh dựa trên file json cung cấp thông tin chia tệp
 import os
 import shutil
 import json

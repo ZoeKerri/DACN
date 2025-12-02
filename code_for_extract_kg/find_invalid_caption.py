@@ -1,3 +1,5 @@
+#File code dùng cho việc tìm kiếm các caption bị thiếu hoặc bị thừa trong quá trình xử lý
+# Tiếp đó làm sạch lại bằng cách gộp các caption trùng, các ca[tion thiếu thì sẽ in ra và xử lý sau
 import pandas as pd
 import json
 
@@ -8,7 +10,7 @@ import json
 #Tiếp đó, sau khi xử lý các caption bị thiếu, khoảng 547 hình bị thiếu caption thì còn lại 33 ảnh bị thiếu caption <5
 #Những caption này lý do thiếu là do tên caption trùng nhau chứ không phải là do quá trình xử lý nữa, nên ta chỉ cần gộp lại
 input_file = 'merged_unique.json' 
-output_file = 'clean_merge_final_3.json'
+output_file = 'clean_merge_final_2.json'
 
 print(f"Đang đọc file {input_file}...")
 try:

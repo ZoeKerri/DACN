@@ -1,3 +1,4 @@
+#file này đơn giản là truyền caption lên n8n để trích xuất triplet
 import os
 import sys
 import json

@@ -1,9 +1,8 @@
+#Đọc index để truyền lên n8n
 import json
 
-# Đường dẫn file
 file_path = "E:/final_project/index.json"
 
-# Đọc file
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
 
